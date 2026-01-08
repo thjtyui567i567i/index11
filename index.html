@@ -8,12 +8,20 @@
 body {
   margin: 0;
   font-family: cursive;
-  background: linear-gradient(135deg,pink,#fad0c4);
+  background: linear-gradient(135deg, pink, #fad0c4);
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
+}
+
+/* --- حركة الانفجار (The Bomb Effect) --- */
+@keyframes bombPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  80% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .card {
@@ -25,11 +33,13 @@ body {
   box-shadow: 0 20px 40px rgba(0,0,0,0.25);
   z-index: 1;
   position: relative;
+  /* تشغيل حركة الانفجار عند الفتح */
+  animation: bombPop 0.8s cubic-bezier(0.17, 0.89, 0.32, 1.49) both;
 }
 
 h1 { color: #ff4081; margin-bottom: 10px; }
 h2 { margin: 5px 0; }
-.details p { margin: 5px 0; }
+.details p { margin: 5px 0; font-weight: bold; font-size: 1.1em; }
 
 .countdown {
   display: flex;
@@ -43,7 +53,7 @@ h2 { margin: 5px 0; }
   padding: 10px;
   border-radius: 12px;
   width: 70px;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .countdown span {
@@ -68,9 +78,10 @@ button {
   cursor: pointer;
   font-size: 14px;
   font-family: cursive;
+  transition: 0.3s;
 }
 
-button:hover { background: #e73370; }
+button:hover { background: #e73370; transform: scale(1.1); }
 
 canvas {
   position: fixed;
@@ -81,35 +92,22 @@ canvas {
   height: 100%;
   z-index: 0;
 }
-
-#alert {
-  position: fixed;
-  bottom: 20px;
-  background: rgba(255,64,129,0.9);
-  color: white;
-  padding: 10px 15px;
-  border-radius: 20px;
-  font-family: cursive;
-  display: none;
-}
 </style>
 </head>
 
 <body>
 
-
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 
 <canvas id="balloons"></canvas>
 
 <div class="card" id="card">
   <h1> Hanar’s 20th Birthday Party </h1>
-  <h2></h2>
-  <p>!Join me in celebrating my 20th birthday </p>
+  <p>!Join me in celebrating my 20th birthday</p>
 
   <div class="details">
     <p>13/02/2026</p>
     <p> 6:00PM</p>
-    <p> </p>
   </div>
 
   <h3> Countdown</h3>
@@ -127,75 +125,84 @@ canvas {
 </div>
 
 <script>
+// تشغيل انفجار القصاصات فور التحميل
+window.onload = () => {
+  confetti({
+    particleCount: 150,
+    spread: 70,
+    origin: { y: 0.6 },
+    colors: ['#ff4081', '#ffffff', '#ffd1dc']
+  });
+  createBalloons();
+  drawBalloons();
+};
 
-const eventDate = new Date("February 15, 2026 18:00:00").getTime();
+// تحديث التاريخ المستهدف إلى 13 فبراير
+const eventDate = new Date("February 13, 2026 18:00:00").getTime();
+
 setInterval(() => {
   const now = new Date().getTime();
   const diff = eventDate - now;
   if(diff <= 0) return;
 
-  document.getElementById("days").innerText =
-    Math.floor(diff / (1000 * 60 * 60 * 24));
-  document.getElementById("hours").innerText =
-    Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  document.getElementById("minutes").innerText =
-    Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  document.getElementById("seconds").innerText =
-    Math.floor((diff % (1000 * 60)) / 1000);
-},1000);
-
+  document.getElementById("days").innerText = Math.floor(diff / (1000 * 60 * 60 * 24));
+  document.getElementById("hours").innerText = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  document.getElementById("minutes").innerText = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  document.getElementById("seconds").innerText = Math.floor((diff % (1000 * 60)) / 1000);
+}, 1000);
 
 function share() {
   if(navigator.share) {
-    navigator.share({
-      
-      url: window.location.href
-    });
+    navigator.share({ url: window.location.href });
   } else {
-    alert("اا");
+    alert("رابط الدعوة: " + window.location.href);
   }
 }
-
 
 function openMap() {
   const address = "931 Forder Hills Dr, Saint Louis, MO 63129";
-  window.open(`https://maps.google.com?q=${encodeURIComponent(address)}`, "_blank");
+  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, "_blank");
 }
 
-
 const balloonCanvas = document.getElementById("balloons");
-balloonCanvas.width = window.innerWidth;
-balloonCanvas.height = window.innerHeight;
 const bCtx = balloonCanvas.getContext("2d");
 let balloons = [];
+
+function resize() {
+  balloonCanvas.width = window.innerWidth;
+  balloonCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
 function createBalloons() {
-  for(let i=0;i<30;i++){
+  for(let i=0; i<30; i++){
     balloons.push({
-      x: Math.random()*balloonCanvas.width,
-      y: balloonCanvas.height + Math.random()*200,
-      r: Math.random()*15+10,
-      color:`hsl(${Math.random()*360},100%,70%)`,
-      speed: Math.random()*2+1
+      x: Math.random() * balloonCanvas.width,
+      y: balloonCanvas.height + Math.random() * 500,
+      r: Math.random() * 15 + 10,
+      color: `hsl(${Math.random() * 360}, 100%, 75%)`,
+      speed: Math.random() * 1.5 + 0.5
     });
   }
 }
+
 function drawBalloons(){
   bCtx.clearRect(0,0,balloonCanvas.width,balloonCanvas.height);
-  balloons.forEach(b=>{
+  balloons.forEach(b => {
     bCtx.beginPath();
     bCtx.fillStyle = b.color;
-    bCtx.ellipse(b.x,b.y,b.r,b.r*1.2,0,0,2*Math.PI);
+    bCtx.ellipse(b.x, b.y, b.r, b.r * 1.2, 0, 0, 2 * Math.PI);
     bCtx.fill();
     b.y -= b.speed;
-    if(b.y<-50){b.y=balloonCanvas.height+Math.random()*200; b.x=Math.random()*balloonCanvas.width;}
+    if(b.y < -100){
+      b.y = balloonCanvas.height + 100;
+      b.x = Math.random() * balloonCanvas.width;
+    }
   });
   requestAnimationFrame(drawBalloons);
 }
-
-
-
 </script>
 
 </body>
 </html>
-
